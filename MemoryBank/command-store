@@ -1,0 +1,8 @@
+# 1. Add the remote repository
+git remote add origin https://github.com/tamargabor/PropPulse.git
+
+# 2. Rename the default branch to 'main' if it's not already
+git branch -M main
+
+# 3. Push the local commits to GitHub
+git push -u origin main
