@@ -1,8 +1,9 @@
 ```mermaid
 erDiagram
-    PROPERTY ||--o{ LEASE : "has"
-    PROPERTY ||--o{ OVERHEAD : "incurs"
-    TENANT ||--o{ LEASE : "signs"
+
+    PROPERTY ||--o{ LEASE : has
+    PROPERTY ||--o{ OVERHEAD : incurs
+    TENANT ||--o{ LEASE : signs
     LEASE ||--o{ OVERHEAD : "associated with"
 
     PROPERTY {
@@ -27,3 +28,4 @@ erDiagram
         decimal Amount
         int ServiceMonth
     }
+```
