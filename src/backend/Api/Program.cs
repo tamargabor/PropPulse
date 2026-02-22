@@ -1,34 +1,21 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using PropPulse.Database;
 
-// Add services to the container.
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureServices((context, services) =>
+    {
+        var connectionString = context.Configuration["SqlConnectionString"]
+            ?? throw new InvalidOperationException(
+                "SqlConnectionString is not configured. " +
+                "Add it to local.settings.json (locally) or to the Application Settings in Azure.");
 
-var app = builder.Build();
+        services.AddDbContext<PropPulseDbContext>(options =>
+            options.UseSqlServer(connectionString));
+    })
+    .Build();
 
-// Configure the HTTP request pipeline.
-
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-});
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+await host.RunAsync();
