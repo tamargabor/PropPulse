@@ -13,3 +13,15 @@ dotnet tool install -g microsoft.sqlpackage
 
 #SQLPackage publish
 sqlpackage /Action:Publish /SourceFile:bin\Debug\SQLDatabase.dacpac /TargetConnectionString:"Server=DESKTOP-LIQJG8Q\SQLSERVER;Database=PropPulseDb;Trusted_Connection=True;TrustServerCertificate=True;"
+
+
+#SWA deploy
+az login
+az group create --name proppulse-rg --location westeurope
+az deployment group create --resource-group proppulse-rg --template-file infra/bicep/static-web-app.bicep
+
+
+#SQL DB deploy
+az login
+az group create --name proppulse-rg --location westeurope
+az deployment group create --resource-group proppulse-rg --template-file infra/bicep/sql-db.bicep
