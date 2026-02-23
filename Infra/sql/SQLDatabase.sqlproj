@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.Build.Sql/0.1.12-preview">
+  <PropertyGroup>
+    <Name>PropPulseDb</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider</DSP>
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+</Project>

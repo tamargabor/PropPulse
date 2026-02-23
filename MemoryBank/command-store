@@ -6,3 +6,10 @@ git branch -M main
 
 # 3. Push the local commits to GitHub
 git push -u origin main
+
+
+#SQLPackage install
+dotnet tool install -g microsoft.sqlpackage
+
+#SQLPackage publish
+sqlpackage /Action:Publish /SourceFile:bin\Debug\SQLDatabase.dacpac /TargetConnectionString:"Server=DESKTOP-LIQJG8Q\SQLSERVER;Database=PropPulseDb;Trusted_Connection=True;TrustServerCertificate=True;"

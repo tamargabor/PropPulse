@@ -11,13 +11,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "Api\Api.csproj", "{369F701A-E7DC-40C0-A504-CCDCACD5E5AE}"
 EndProject
+Project("{42EA0DBD-9CF1-443E-919E-BE9C484E4577}") = "SQLDatabase", "..\..\Infra\sql\SQLDatabase.sqlproj", "{286D7837-73BE-39C1-E953-F0C40ECE032F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{E20E8E31-2858-4B9C-8C1E-868CCF7ED261}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -36,5 +35,11 @@ Global
 		{369F701A-E7DC-40C0-A504-CCDCACD5E5AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{369F701A-E7DC-40C0-A504-CCDCACD5E5AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{369F701A-E7DC-40C0-A504-CCDCACD5E5AE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C37F1DE8-4242-49FD-85A3-2E152458D278}
 	EndGlobalSection
 EndGlobal
