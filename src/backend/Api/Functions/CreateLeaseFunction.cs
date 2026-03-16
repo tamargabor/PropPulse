@@ -1,5 +1,6 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PropPulse.Database;
 using PropPulse.Models;
@@ -37,6 +38,20 @@ public class CreateLeaseFunction
             }
 
             lease.Id = Guid.NewGuid();
+
+            Lease? activeLease = await _dbContext.Leases.FirstOrDefaultAsync(l =>
+                l.PropertyId == lease.PropertyId &&
+                (l.EndDate == null || l.EndDate > lease.StartDate));
+
+_logger.LogInformation("Active lease found: {ActiveLeaseId}", activeLease?.Id);
+
+            if (activeLease is not null)
+            {
+                activeLease.EndDate = lease.StartDate;
+                _logger.LogInformation(
+                    "Auto-closing lease {ActiveLeaseId} for property {PropertyId}. EndDate set to {NewStartDate}.",
+                    activeLease.Id, lease.PropertyId, lease.StartDate);
+            }
 
             await _dbContext.Leases.AddAsync(lease);
             await _dbContext.SaveChangesAsync();

@@ -1,60 +1,80 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Typography, Card, CardContent,
   List, ListItem, ListItemText, CircularProgress,
   Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Box,
-  IconButton,
+  IconButton, Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import {
+  type Property,
+  fetchProperties,
+  createProperty,
+  updateProperty,
+  deleteProperty,
+} from '../api/propertiesApi';
+import PropertyDrawer from '../components/PropertyDrawer';
 
-interface Property {
-  Id?: string;
-  Title: string;
-  Address: string;
-}
+const QUERY_KEY = ['properties'] as const;
 
-const API_BASE = 'http://localhost:7071/api/properties';
+const EMPTY_FORM: Property = { Title: '', Address: '' };
 
 export default function Properties() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  //UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProperty, setNewProperty] = useState<Property>({ Title: '', Address: '' });
+  const [formData, setFormData] = useState<Property>(EMPTY_FORM);
+  const isEditing = Boolean(formData.Id);
 
-  const isEditing = Boolean(newProperty.Id);
+  //Drawer state
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const isDrawerOpen = selectedProperty !== null;
 
-  const fetchProperties = () => {
-    setLoading(true);
-    fetch(API_BASE)
-      .then(response => response.json())
-      .then(data => {
-        setProperties(data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Hiba a betöltéskor:', error);
-        setLoading(false);
-      });
-  };
+  //Server state
+  const {
+    data: properties = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: fetchProperties,
+  });
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: QUERY_KEY });
 
+  const saveMutation = useMutation({
+    mutationFn: (data: Property) =>
+      data.Id ? updateProperty(data) : createProperty(data),
+    onSuccess: () => {
+      invalidate();
+      handleClose();
+    },
+    onError: (err: Error) => console.error('Hiba mentéskor:', err.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteProperty(id),
+    onSuccess: invalidate,
+    onError: (err: Error) => console.error('Hiba törléskor:', err.message),
+  });
+
+  //Handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewProperty({ ...newProperty, [e.target.name]: e.target.value });
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleOpenCreate = () => {
-    setNewProperty({ Title: '', Address: '' });
+    setFormData(EMPTY_FORM);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (property: Property) => {
-    setNewProperty({ ...property });
+    setFormData({ ...property });
     setIsModalOpen(true);
   };
 
@@ -63,35 +83,24 @@ export default function Properties() {
   };
 
   const handleSave = () => {
-    const url = isEditing ? `${API_BASE}/${newProperty.Id}` : API_BASE;
-    const method = isEditing ? 'PUT' : 'POST';
-
-    fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProperty),
-    })
-      .then(response => {
-        if (response.ok) {
-          handleClose();
-          fetchProperties();
-        }
-      })
-      .catch(error => console.error('Hiba mentéskor:', error));
+    saveMutation.mutate(formData);
   };
 
   const handleDelete = (property: Property) => {
+    if (!property.Id) return;
     if (!window.confirm('Biztosan törölni szeretnéd ezt az ingatlant?')) return;
-
-    fetch(`${API_BASE}/${property.Id}`, { method: 'DELETE' })
-      .then(response => {
-        if (response.ok) {
-          fetchProperties();
-        }
-      })
-      .catch(error => console.error('Hiba törléskor:', error));
+    deleteMutation.mutate(property.Id);
   };
 
+  const handleRowClick = (property: Property) => {
+    setSelectedProperty(property);
+  };
+
+  const handleDrawerClose = () => {
+    setSelectedProperty(null);
+  };
+
+  //Render
   return (
     <Box>
       <Card
@@ -134,7 +143,13 @@ export default function Properties() {
             </Button>
           </Box>
 
-          {loading ? (
+          {isError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Hiba történt az ingatlanok betöltésekor. Kérjük, próbáld újra.
+            </Alert>
+          )}
+
+          {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: '#e94560' }} />
             </Box>
@@ -152,11 +167,12 @@ export default function Properties() {
               {properties.map((property, index) => (
                 <ListItem
                   key={property.Id}
+                  onClick={() => handleRowClick(property)}
                   secondaryAction={
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <IconButton
                         size="small"
-                        onClick={() => handleOpenEdit(property)}
+                        onClick={(e) => { e.stopPropagation(); handleOpenEdit(property); }}
                         sx={{
                           color: '#3b82f6',
                           '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' },
@@ -167,7 +183,8 @@ export default function Properties() {
                       </IconButton>
                       <IconButton
                         size="small"
-                        onClick={() => handleDelete(property)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(property); }}
+                        disabled={deleteMutation.isPending}
                         sx={{
                           color: '#ef4444',
                           '&:hover': { backgroundColor: 'rgba(239,68,68,0.1)' },
@@ -181,8 +198,9 @@ export default function Properties() {
                   sx={{
                     borderRadius: '12px',
                     pr: 12,
+                    cursor: 'pointer',
                     transition: 'background-color 0.15s ease',
-                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.02)' },
+                    '&:hover': { backgroundColor: 'rgba(233,69,96,0.04)' },
                     borderBottom:
                       index < properties.length - 1
                         ? '1px solid rgba(0,0,0,0.05)'
@@ -225,7 +243,7 @@ export default function Properties() {
             label="Ingatlan Neve"
             fullWidth
             variant="outlined"
-            value={newProperty.Title}
+            value={formData.Title}
             onChange={handleInputChange}
             sx={{ mb: 2, mt: 1 }}
           />
@@ -235,13 +253,14 @@ export default function Properties() {
             label="Címe"
             fullWidth
             variant="outlined"
-            value={newProperty.Address}
+            value={formData.Address}
             onChange={handleInputChange}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
           <Button
             onClick={handleClose}
+            disabled={saveMutation.isPending}
             sx={{ color: '#888', textTransform: 'none', fontWeight: 500 }}
           >
             Mégse
@@ -249,6 +268,7 @@ export default function Properties() {
           <Button
             onClick={handleSave}
             variant="contained"
+            disabled={saveMutation.isPending}
             sx={{
               borderRadius: '10px',
               textTransform: 'none',
@@ -260,10 +280,23 @@ export default function Properties() {
               },
             }}
           >
-            {isEditing ? 'Módosítás' : 'Mentés'}
+            {saveMutation.isPending
+              ? 'Mentés folyamatban...'
+              : isEditing
+                ? 'Módosítás'
+                : 'Mentés'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Property Detail Drawer */}
+      <PropertyDrawer
+        key={selectedProperty?.Id ?? 'closed'}
+        open={isDrawerOpen}
+        onClose={handleDrawerClose}
+        propertyId={selectedProperty?.Id ?? null}
+        propertyTitle={selectedProperty?.Title}
+      />
     </Box>
   );
 }

@@ -1,3 +1,4 @@
+#git cheet sheet
 # 1. Add the remote repository
 git remote add origin https://github.com/tamargabor/PropPulse.git
 
@@ -8,6 +9,7 @@ git branch -M main
 git push -u origin main
 
 
+#sql cheet sheet
 #SQLPackage install
 dotnet tool install -g microsoft.sqlpackage
 
@@ -25,3 +27,68 @@ az deployment group create --resource-group proppulse-rg --template-file infra/b
 az login
 az group create --name proppulse-rg --location westeurope
 az deployment group create --resource-group proppulse-rg --template-file infra/bicep/sql-db.bicep
+
+
+#Frontend Cheat Sheet
+1. System and Project Initialization (The Big Bang)
+These commands are typically run only once when setting up the environment or initializing a new project.
+
+npm install -g pnpm
+
+What it does: Installs the pnpm package manager globally on your machine. (Requires Node.js to be installed first).
+
+pnpm create vite frontend --template react-ts
+
+What it does: Initializes a brand new, empty React project with TypeScript configuration inside a folder named "frontend", using Vite as the build tool.
+
+pnpm install (or simply: pnpm i)
+
+What it does: Reads the package.json file and downloads all required dependencies into the node_modules folder. You must also run this whenever a teammate (or Git pull) updates the project with new packages.
+
+2. Daily Development Workflow
+These are the most frequently used commands during active development.
+
+pnpm run dev
+
+What it does: Starts the local development server (usually at http://localhost:5173). It watches your files and instantly updates the browser when you save changes (HMR - Hot Module Replacement).
+
+pnpm run build
+
+What it does: Prepares the application for Production. It compiles the TypeScript code into minified, browser-friendly JavaScript and bundles everything into a dist (distribution) folder. This is the folder you deploy to Azure or any static web host.
+
+pnpm run preview
+
+What it does: After running a build, this command spins up a local web server to test the generated production code. It allows you to verify that the minified application behaves exactly as it will in the cloud.
+
+3. Adding Packages (Libraries)
+Using pnpm add allows us to pull in new tools and UI components. These are the core libraries we added to our stack:
+
+pnpm add @mui/material @emotion/react @emotion/styled
+
+What it does: Installs Google's Material UI component library (buttons, cards, dialogs). The Emotion packages are required for MUI's internal CSS-in-JS styling engine.
+
+pnpm add @mui/icons-material
+
+What it does: Installs the official Material Design icons (e.g., the trash can and pencil icons used in our lists).
+
+pnpm add react-router-dom
+
+What it does: Installs the client-side router, enabling seamless navigation between logical pages (Dashboard, Properties, Tenants) without triggering a full browser page reload.
+
+pnpm add @tanstack/react-query
+
+What it does: Installs the server-state management library. It handles data fetching, built-in caching, automatic retries, and background UI updates.
+
+4. Troubleshooting & Firefighting
+When the "Ghost in the Machine" acts up, these commands will save the day:
+
+Stop-Process -Name node -Force (Run in PowerShell)
+
+What it does: Ruthlessly kills all running JavaScript/Node.js background servers. Highly useful if the Vite server gets stuck in the background and you get a "Port 5173 is already in use" error.
+
+The "Nuke and Pave" approach (Fixing broken dependencies):
+
+Delete the node_modules folder entirely.
+
+Run pnpm install again.
+(This is the frontend equivalent of "Have you tried turning it off and on again?" when the package manager gets confused).

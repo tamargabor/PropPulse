@@ -6,8 +6,8 @@ public class Lease
     public Guid PropertyId { get; set; }
     public Guid TenantId { get; set; }
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
-    public decimal MonthlyRentAmount { get; set; }
+    public DateTime? EndDate { get; set; }
+    public decimal? MonthlyRentAmount { get; set; }
     /// <summary>Active | Inactive</summary>
     public string Status { get; set; } = string.Empty;
 
