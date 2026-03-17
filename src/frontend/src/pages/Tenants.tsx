@@ -18,6 +18,7 @@ import {
   updateTenant,
   deleteTenant,
 } from '../api/tenantsApi';
+import TenantDrawer from '../components/TenantDrawer';
 
 const QUERY_KEY = ['tenants'] as const;
 
@@ -30,6 +31,19 @@ export default function Tenants() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Tenant>(EMPTY_FORM);
   const isEditing = Boolean(formData.Id);
+
+  //Drawer state
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleRowClick = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setIsDrawerOpen(true);
+  };
+
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false);
+  };
 
   //Server state
   const {
@@ -155,11 +169,12 @@ export default function Tenants() {
               {tenants.map((tenant, index) => (
                 <ListItem
                   key={tenant.Id}
+                  onClick={() => handleRowClick(tenant)}
                   secondaryAction={
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <IconButton
                         size="small"
-                        onClick={() => handleOpenEdit(tenant)}
+                        onClick={e => { e.stopPropagation(); handleOpenEdit(tenant); }}
                         sx={{
                           color: '#3b82f6',
                           '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' },
@@ -170,7 +185,7 @@ export default function Tenants() {
                       </IconButton>
                       <IconButton
                         size="small"
-                        onClick={() => handleDelete(tenant)}
+                        onClick={e => { e.stopPropagation(); handleDelete(tenant); }}
                         disabled={deleteMutation.isPending}
                         sx={{
                           color: '#ef4444',
@@ -185,8 +200,9 @@ export default function Tenants() {
                   sx={{
                     borderRadius: '12px',
                     pr: 12,
+                    cursor: 'pointer',
                     transition: 'background-color 0.15s ease',
-                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.02)' },
+                    '&:hover': { backgroundColor: 'rgba(233,69,96,0.04)' },
                     borderBottom:
                       index < tenants.length - 1
                         ? '1px solid rgba(0,0,0,0.05)'
@@ -285,6 +301,15 @@ export default function Tenants() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Tenant Drawer — read-only lease history */}
+      <TenantDrawer
+        key={selectedTenant?.Id}
+        open={isDrawerOpen}
+        onClose={handleDrawerClose}
+        tenantId={selectedTenant?.Id ?? null}
+        tenantName={selectedTenant?.FullName}
+      />
     </Box>
   );
 }

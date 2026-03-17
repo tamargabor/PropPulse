@@ -16,6 +16,13 @@ export async function fetchLeasesByProperty(propertyId: string): Promise<Lease[]
   return res.json();
 }
 
+export async function fetchLeasesByTenant(tenantId: string): Promise<Lease[]> {
+  const res = await fetch(`${API_BASE}/tenant/${tenantId}`);
+  if (!res.ok) throw new Error('Hiba a bérlő szerződéseinek betöltésekor');
+  return res.json();
+}
+
+
 export type NewLease = Omit<Lease, 'Id'>;
 
 export async function createLease(data: NewLease): Promise<Lease> {
