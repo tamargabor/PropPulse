@@ -17,7 +17,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { type Lease, type NewLease, fetchLeasesByProperty, createLease, deleteLease } from '../api/leasesApi';
-import { type Utility, fetchUtilitiesByProperty } from '../api/utilitiesApi';
+import { type Utility, type NewUtility, fetchUtilitiesByProperty, createUtility, deleteUtility } from '../api/utilitiesApi';
 import { fetchTenants } from '../api/tenantsApi';
 
 //Helpers
@@ -45,6 +45,19 @@ function emptyForm(propertyId: string): NewLease {
     EndDate: null,
     MonthlyRentAmount: null,
     Status: 'Active',
+  };
+}
+
+function emptyUtilityForm(propertyId: string): NewUtility {
+  const now = new Date();
+  return {
+    PropertyId: propertyId,
+    Type: '',
+    Amount: 0,
+    ServiceMonth: now.getFullYear() * 100 + (now.getMonth() + 1),
+    DueDate: '',
+    IsPaid: false,
+    LeaseId: null,
   };
 }
 
@@ -197,29 +210,47 @@ function LeasesTab({ propertyId, onAddClick }: LeasesTabProps) {
 //Utilities Tab
 interface UtilitiesTabProps {
   propertyId: string;
+  onAddClick: () => void;
 }
 
-function UtilitiesTab({ propertyId }: UtilitiesTabProps) {
+function UtilitiesTab({ propertyId, onAddClick }: UtilitiesTabProps) {
+  const queryClient = useQueryClient();
+
   const { data: utilities = [], isLoading, isError } = useQuery<Utility[]>({
     queryKey: ['utilities', 'property', propertyId],
     queryFn: () => fetchUtilitiesByProperty(propertyId),
     enabled: Boolean(propertyId),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteUtility(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['utilities', 'property', propertyId] }),
+    onError: (err: Error) => console.error('Hiba a törlésekor:', err.message),
+  });
+
+  const handleDelete = (utility: Utility) => {
+    if (!window.confirm('Biztosan törölni szeretnéd ezt a rezsiszámlát?')) return;
+    deleteMutation.mutate(utility.Id);
+  };
+
   return (
     <Box>
       <Box sx={{ mb: 2 }}>
         <Button
-          variant="outlined"
+          variant="contained"
           startIcon={<AddIcon />}
+          onClick={onAddClick}
           size="small"
-          disabled
           sx={{
             borderRadius: '8px',
             textTransform: 'none',
             fontWeight: 600,
-            borderColor: '#e94560',
-            color: '#e94560',
+            background: 'linear-gradient(135deg, #e94560 0%, #ff6b6b 100%)',
+            boxShadow: '0 4px 14px rgba(233, 69, 96, 0.3)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #d63851 0%, #e94560 100%)',
+              boxShadow: '0 6px 18px rgba(233, 69, 96, 0.4)',
+            },
           }}
         >
           Új számla
@@ -254,9 +285,20 @@ function UtilitiesTab({ propertyId }: UtilitiesTabProps) {
               <ListItem
                 sx={{ px: 0, py: 1.25 }}
                 secondaryAction={
-                  utility.IsPaid
-                    ? <CheckCircleIcon sx={{ fontSize: 20, color: '#16a34a' }} />
-                    : <RadioButtonUncheckedIcon sx={{ fontSize: 20, color: '#ccc' }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {utility.IsPaid
+                      ? <CheckCircleIcon sx={{ fontSize: 20, color: '#16a34a' }} />
+                      : <RadioButtonUncheckedIcon sx={{ fontSize: 20, color: '#ccc' }} />}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(utility)}
+                      disabled={deleteMutation.isPending}
+                      sx={{ color: '#ef4444', '&:hover': { backgroundColor: 'rgba(239,68,68,0.1)' } }}
+                      aria-label="Törlés"
+                    >
+                      <DeleteIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Box>
                 }
               >
                 <ListItemText
@@ -297,6 +339,140 @@ function UtilitiesTab({ propertyId }: UtilitiesTabProps) {
         </List>
       )}
     </Box>
+  );
+}
+
+//Create Utility Dialog
+interface CreateUtilityDialogProps {
+  open: boolean;
+  onClose: () => void;
+  propertyId: string;
+}
+
+const UTILITY_TYPES = ['Víz', 'Villany', 'Gáz', 'Közös költség', 'Internet', 'Egyéb'];
+
+function CreateUtilityDialog({ open, onClose, propertyId }: CreateUtilityDialogProps) {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState<NewUtility>(() => emptyUtilityForm(propertyId));
+
+  const mutation = useMutation({
+    mutationFn: (data: NewUtility) => createUtility(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['utilities', 'property', propertyId] });
+      handleClose();
+    },
+    onError: (err: Error) => console.error('Hiba a rezsiszámla mentésekor:', err.message),
+  });
+
+  const handleClose = () => {
+    setFormData(emptyUtilityForm(propertyId));
+    onClose();
+  };
+
+  const handleChange = <K extends keyof NewUtility>(field: K, value: NewUtility[K]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = () => {
+    mutation.mutate({
+      ...formData,
+      Amount: Number(formData.Amount),
+    });
+  };
+
+  const isValid = formData.Type !== '' && formData.DueDate !== '' && Number(formData.Amount) > 0;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: '16px' } }}
+    >
+      <DialogTitle sx={{ fontWeight: 700, color: '#1a1a2e' }}>
+        Új Rezsiszámla Hozzáadása
+      </DialogTitle>
+
+      <DialogContent>
+        <FormControl fullWidth margin="dense" sx={{ mt: 1, mb: 2 }}>
+          <InputLabel id="utility-type-label">Típus</InputLabel>
+          <Select
+            labelId="utility-type-label"
+            label="Típus"
+            value={formData.Type}
+            onChange={e => handleChange('Type', e.target.value)}
+          >
+            {UTILITY_TYPES.map(t => (
+              <MenuItem key={t} value={t}>{t}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <TextField
+          margin="dense"
+          label="Összeg (Ft)"
+          type="number"
+          fullWidth
+          variant="outlined"
+          value={formData.Amount === 0 ? '' : formData.Amount}
+          onChange={e => handleChange('Amount', e.target.value === '' ? 0 : Number(e.target.value))}
+          slotProps={{ htmlInput: { min: 0 } }}
+          sx={{ mb: 2 }}
+        />
+
+        <TextField
+          margin="dense"
+          label="Fizetési határidő"
+          type="date"
+          fullWidth
+          variant="outlined"
+          value={formData.DueDate}
+          onChange={e => handleChange('DueDate', e.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ mb: 2 }}
+        />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.IsPaid}
+              onChange={e => handleChange('IsPaid', e.target.checked)}
+              sx={{ color: '#e94560', '&.Mui-checked': { color: '#e94560' } }}
+            />
+          }
+          label="Fizetve"
+          sx={{ color: '#555' }}
+        />
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, pt: 0 }}>
+        <Button
+          onClick={handleClose}
+          disabled={mutation.isPending}
+          sx={{ color: '#888', textTransform: 'none', fontWeight: 500 }}
+        >
+          Mégse
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={mutation.isPending || !isValid}
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 3,
+            background: 'linear-gradient(135deg, #e94560 0%, #ff6b6b 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #d63851 0%, #e94560 100%)',
+            },
+          }}
+        >
+          {mutation.isPending ? 'Mentés folyamatban...' : 'Mentés'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -486,6 +662,7 @@ export default function PropertyDrawer({
 }: PropertyDrawerProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateUtilityOpen, setIsCreateUtilityOpen] = useState(false);
 
   return (
     <Drawer
@@ -571,7 +748,12 @@ export default function PropertyDrawer({
         </TabPanel>
 
         <TabPanel value={activeTab} index={1}>
-          {propertyId && <UtilitiesTab propertyId={propertyId} />}
+          {propertyId && (
+            <UtilitiesTab
+              propertyId={propertyId}
+              onAddClick={() => setIsCreateUtilityOpen(true)}
+            />
+          )}
         </TabPanel>
 
         <TabPanel value={activeTab} index={2}>
@@ -589,6 +771,15 @@ export default function PropertyDrawer({
         <CreateLeaseDialog
           open={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
+          propertyId={propertyId}
+        />
+      )}
+
+      {/* Create Utility Dialog */}
+      {propertyId && (
+        <CreateUtilityDialog
+          open={isCreateUtilityOpen}
+          onClose={() => setIsCreateUtilityOpen(false)}
           propertyId={propertyId}
         />
       )}

@@ -44,23 +44,6 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <Box sx={{ px: 3, py: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Box
-          sx={{
-            width: 38,
-            height: 38,
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #e94560 0%, #ff6b6b 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '1.1rem',
-            color: '#fff',
-            boxShadow: '0 4px 14px rgba(233, 69, 96, 0.4)',
-          }}
-        >
-          P
-        </Box>
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '0.5px' }}>
           PropPulse
         </Typography>
